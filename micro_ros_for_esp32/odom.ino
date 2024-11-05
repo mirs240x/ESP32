@@ -1,3 +1,4 @@
+/*
 double x_ = 0;
 double y_ = 0;
 double theta_ = 0;
@@ -63,7 +64,7 @@ void calculate_odometry(){
   //odom_pub_->publish(odom_msg);
 
   // TF変換のパブリッシュ
-
+  
   //odom_tf.header.stamp = this->get_clock()->now();
   odom_tf.header.stamp.sec = time_ms / 1000;  // 秒単位;
   odom_tf.header.stamp.nanosec = (time_ms % 1000) * 1000000; // ナノ秒単位
@@ -81,6 +82,21 @@ void calculate_odometry(){
   odom_tf.transform.rotation.w = q.w;
 
   //tf_broadcaster_->sendTransform(odom_tf);
+  
+  tf_message.transforms.size = 1;
+
+  rosidl_runtime_c__String__assign(&tf_message.transforms.data[0].header.frame_id, "odom");
+  rosidl_runtime_c__String__assign(&tf_message.transforms.data[0].child_frame_id, "base_link");
+  
+  tf_message.transforms.data[0].transform.translation.x = x_;
+  tf_message.transforms.data[0].transform.translation.y = y_;
+  tf_message.transforms.data[0].transform.rotation.x = q.x;
+	tf_message.transforms.data[0].transform.rotation.y = q.y;
+	tf_message.transforms.data[0].transform.rotation.z = q.z;
+	tf_message.transforms.data[0].transform.rotation.w = q.w;
+  tf_message.transforms.data[0].header.stamp.nanosec = (time_ms % 1000) * 1000000; 
+	tf_message.transforms.data[0].header.stamp.sec = time_ms / 1000;
+
 }
 
 void odometry_set(){
@@ -89,3 +105,4 @@ void odometry_set(){
   enc_msg.data.data[0] = 0;
   enc_msg.data.data[1] = 0;
 }
+*/

@@ -17,9 +17,12 @@
 #include "quaternion.h"
 #include "define.h"
 #include <builtin_interfaces/msg/time.h>
+#include <tf2_msgs/msg/tf_message.h>
+#include <micro_ros_utilities/type_utilities.h>
+#include <micro_ros_utilities/string_utilities.h>
 
-nav_msgs__msg__Odometry odom_msg;             //オドメトリ
-geometry_msgs__msg__TransformStamped odom_tf; //tf変換
+//nav_msgs__msg__Odometry odom_msg;             //オドメトリ
+//geometry_msgs__msg__TransformStamped odom_tf; //tf変換
 std_msgs__msg__Int32MultiArray enc_msg;       //エンコーダー情報
 geometry_msgs__msg__Twist vel_msg;            //速度指令値
 mirs_msgs__srv__ParameterUpdate_Response update_res;
@@ -28,15 +31,16 @@ mirs_msgs__srv__ParameterUpdate_Request update_req;
 //mirs_msgs__srv__SimpleCommand_Request reboot_req;
 //mirs_msgs__srv__SimpleCommand_Response reset_res;
 //mirs_msgs__srv__SimpleCommand_Request reset_req;
+//tf2_msgs__msg__TFMessage tf_message;
 
-rcl_publisher_t odom_pub;
-rcl_publisher_t tf_broadcaster;
+//rcl_publisher_t odom_pub;
+//rcl_publisher_t tf_pub;
 rcl_publisher_t enc_pub;
 rcl_subscription_t cmd_vel_sub;
 rcl_service_t update_srv;
-rcl_service_t reboot_srv;
-rcl_service_t reset_srv;
-rcl_wait_set_t wait_set;
+//rcl_service_t reboot_srv;
+//rcl_service_t reset_srv;
+//rcl_wait_set_t wait_set;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -60,25 +64,21 @@ double l_pwm;
 
 int32_t abc,def;
 
-const int timeout_ms = 1000;
-static int64_t time_ms;
-static time_t time_seconds;
-
 
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {  
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
     //オドメトリ計算
-    calculate_odometry();
+    //calculate_odometry();
     //PID計算
     PID_control();
     //エンコーダーデータを格納
-    enc_msg.data.data[0] = abc;
-    enc_msg.data.data[1] = def;
-    rcl_publish(&enc_pub, &enc_msg, NULL);
-    rcl_publish(&odom_pub, &odom_msg, NULL);
-    rcl_publish(&tf_broadcaster, &odom_tf, NULL);
+    enc_msg.data.data[0] = count_l;
+    enc_msg.data.data[1] = count_r;
+    //rcl_publish(&enc_pub, &enc_msg, NULL);
+    //rcl_publish(&odom_pub, &odom_msg, NULL);
+    //rcl_publish(&tf_pub, &tf_message, NULL);
   }
 }
 
@@ -96,19 +96,26 @@ void setup() {
   rclc_node_init_default(&node, "ESP32_node", "", &support);
 
   //サブスクライバとパブリッシャーの宣言
+  /*
   rclc_publisher_init_default(
     &odom_pub,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
     "/odom"
   );
-
+  
   rclc_publisher_init_default(
     &tf_broadcaster,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TransformStamped),
     "/tf"
   );
+  rclc_publisher_init_default(
+    &tf_pub,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+    "/tf"
+  );*/
 
   rclc_publisher_init_default(
     &enc_pub,
@@ -162,9 +169,8 @@ void setup() {
   //rclc_executor_add_service(&executor, &reset_srv, &reset_req, &reset_res, reset_service_callback);
   rclc_executor_add_timer(&executor, &timer);
 
-  odometry_set();
+  //odometry_set();
   cmd_vel_set();
-
 
   delay(2000);
 
