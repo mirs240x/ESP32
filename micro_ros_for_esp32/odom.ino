@@ -5,6 +5,9 @@ double theta_ = 0;
 
 void calculate_odometry(){
 
+  rmw_uros_sync_session(timeout_ms);
+  time_ms = rmw_uros_epoch_millis(); 
+
   //エンコーダーの変化量を計算
   int32_t delta_left = count_l - last_count_l;
   int32_t delta_right = count_r - last_count_r;
@@ -33,6 +36,8 @@ void calculate_odometry(){
   //odom_msg.header.stamp = this->get_clock()->now();
   //odom_msg.header.frame_id = "odom";
   rosidl_runtime_c__String__assign(&odom_msg.header.frame_id, "odom");
+  odom_msg.header.stamp.sec = time_ms / 1000;  // 秒単位;
+  odom_msg.header.stamp.nanosec = (time_ms % 1000) * 1000000; // ナノ秒単位
 
   // 位置を設定
   odom_msg.pose.pose.position.x = x_;
@@ -60,6 +65,8 @@ void calculate_odometry(){
   // TF変換のパブリッシュ
 
   //odom_tf.header.stamp = this->get_clock()->now();
+  odom_tf.header.stamp.sec = time_ms / 1000;  // 秒単位;
+  odom_tf.header.stamp.nanosec = (time_ms % 1000) * 1000000; // ナノ秒単位
   rosidl_runtime_c__String__assign(&odom_tf.header.frame_id, "odom");
   rosidl_runtime_c__String__assign(&odom_tf.child_frame_id, "base_link");
   //odom_tf.header.frame_id = "odom";

@@ -16,6 +16,7 @@
 #include <mirs_msgs/srv/simple_command.h>
 #include "quaternion.h"
 #include "define.h"
+#include <builtin_interfaces/msg/time.h>
 
 nav_msgs__msg__Odometry odom_msg;             //オドメトリ
 geometry_msgs__msg__TransformStamped odom_tf; //tf変換
@@ -58,6 +59,11 @@ double r_pwm;
 double l_pwm;
 
 int32_t abc,def;
+
+const int timeout_ms = 1000;
+static int64_t time_ms;
+static time_t time_seconds;
+
 
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {  
@@ -158,6 +164,7 @@ void setup() {
 
   odometry_set();
   cmd_vel_set();
+
 
   delay(2000);
 

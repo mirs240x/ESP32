@@ -1,16 +1,16 @@
 struct Quaternion {
-  float w, x, y, z;
+  double w, x, y, z;
 };
 
-Quaternion toQuaternion(float yaw, float pitch, float roll) {
+Quaternion toQuaternion(double yaw, double pitch, double roll) {
   Quaternion q;
   // 角度の半分を計算
-  float cy = cos(yaw * 0.5);
-  float sy = sin(yaw * 0.5);
-  float cp = cos(pitch * 0.5);
-  float sp = sin(pitch * 0.5);
-  float cr = cos(roll * 0.5);
-  float sr = sin(roll * 0.5);
+  double cy = cos(yaw * 0.5);
+  double sy = sin(yaw * 0.5);
+  double cp = cos(pitch * 0.5);
+  double sp = sin(pitch * 0.5);
+  double cr = cos(roll * 0.5);
+  double sr = sin(roll * 0.5);
 
   // クォータニオンの成分を計算
   q.w = cr * cp * cy + sr * sp * sy;
