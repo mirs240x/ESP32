@@ -12,14 +12,14 @@
 #define PIN_BATT    18
 
 //足回り速度制御用
-#define RKP 80.0
-#define RKI 30.0
-#define RKD 8.0
-#define LKP 100.0
-#define LKI 30.0
-#define LKD 8.0
+double RKP = 80.0;
+double RKI = 30.0;
+double RKD = 8.0;
+double LKP = 100.0;
+double LKI = 30.0;
+double LKD = 8.0;
 
 //車体数値
 #define COUNTS_PER_REV    4096.0
-#define WHEEL_RADIUS      0.04  //ホイール径
-#define WHEEL_BASE       0.38  //車輪間幅
+double WHEEL_RADIUS = 0.04;  //ホイール径
+double WHEEL_BASE = 0.38;  //車輪間幅

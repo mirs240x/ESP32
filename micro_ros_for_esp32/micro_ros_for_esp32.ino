@@ -12,6 +12,8 @@
 #include <rosidl_runtime_c/string_functions.h>
 #include <tf2_msgs/msg/tf_message.h>
 #include <geometry_msgs/msg/twist.h>
+#include <mirs_msgs/srv/parameter_update.h>
+#include <mirs_msgs/srv/simple_command.h>
 #include "quaternion.h"
 #include "define.h"
 
@@ -19,11 +21,21 @@ nav_msgs__msg__Odometry odom_msg;             //オドメトリ
 geometry_msgs__msg__TransformStamped odom_tf; //tf変換
 std_msgs__msg__Int32MultiArray enc_msg;       //エンコーダー情報
 geometry_msgs__msg__Twist vel_msg;            //速度指令値
+mirs_msgs__srv__ParameterUpdate_Response update_res;
+mirs_msgs__srv__ParameterUpdate_Request update_req;
+//mirs_msgs__srv__SimpleCommand_Response reboot_res;
+//mirs_msgs__srv__SimpleCommand_Request reboot_req;
+//mirs_msgs__srv__SimpleCommand_Response reset_res;
+//mirs_msgs__srv__SimpleCommand_Request reset_req;
 
 rcl_publisher_t odom_pub;
 rcl_publisher_t tf_broadcaster;
 rcl_publisher_t enc_pub;
 rcl_subscription_t cmd_vel_sub;
+rcl_service_t update_srv;
+rcl_service_t reboot_srv;
+rcl_service_t reset_srv;
+rcl_wait_set_t wait_set;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -106,8 +118,28 @@ void setup() {
     "/cmd_vel"
   );
 
+  // サービスの宣言
+  rclc_service_init_default(
+    &update_srv,
+    &node,
+    ROSIDL_GET_SRV_TYPE_SUPPORT(mirs_msgs, srv, ParameterUpdate),
+    "/esp_update"
+  );
+  /*
+  rclc_service_init_default(
+    &reboot_srv,
+    &node,
+    ROSIDL_GET_SRV_TYPE_SUPPORT(mirs_msgs, srv, SimpleCommand),
+    "/esp_reboot"
+  );
 
-
+  rclc_service_init_default(
+    &reset_srv,
+    &node,
+    ROSIDL_GET_SRV_TYPE_SUPPORT(mirs_msgs, srv, SimpleCommand),
+    "/esp_reset"
+  );
+  */
   const uint32_t timer_timeout = 100;
 
   rclc_timer_init_default(
@@ -117,8 +149,11 @@ void setup() {
     timer_callback
   );
 
-  rclc_executor_init(&executor, &support.context, 2, &allocator);
+  rclc_executor_init(&executor, &support.context, 3, &allocator);
   rclc_executor_add_subscription(&executor, &cmd_vel_sub, &vel_msg, &cmd_vel_Callback, ON_NEW_DATA);
+  rclc_executor_add_service(&executor, &update_srv, &update_req, &update_res, update_service_callback);
+  //rclc_executor_add_service(&executor, &reboot_srv, &reboot_req, &reboot_res, reboot_service_callback);
+  //rclc_executor_add_service(&executor, &reset_srv, &reset_req, &reset_res, reset_service_callback);
   rclc_executor_add_timer(&executor, &timer);
 
   odometry_set();
