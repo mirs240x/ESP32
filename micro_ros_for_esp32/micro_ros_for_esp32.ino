@@ -33,6 +33,8 @@ mirs_msgs__srv__ParameterUpdate_Request update_req;
 //mirs_msgs__srv__SimpleCommand_Request reset_req;
 //tf2_msgs__msg__TFMessage tf_message;
 
+
+
 //rcl_publisher_t odom_pub;
 //rcl_publisher_t tf_pub;
 rcl_publisher_t enc_pub;
@@ -48,7 +50,8 @@ rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_timer_t timer;
 
-int32_t count_l,count_r;
+int32_t count_l = 0;
+int32_t count_r = 0;
 int32_t last_count_l,last_count_r;
 
 double left_distance;
@@ -69,31 +72,32 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {  
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
-    //オドメトリ計算
-    //calculate_odometry();
     //PID計算
     PID_control();
     //エンコーダーデータを格納
     enc_msg.data.data[0] = count_l;
     enc_msg.data.data[1] = count_r;
-    //rcl_publish(&enc_pub, &enc_msg, NULL);
+    rcl_publish(&enc_pub, &enc_msg, NULL);
     //rcl_publish(&odom_pub, &odom_msg, NULL);
     //rcl_publish(&tf_pub, &tf_message, NULL);
   }
 }
 
 void setup() {
+  set_microros_transports();
   Serial.begin(115200); // シリアル通信を初期化
   encoder_open();
-  set_microros_transports();
+
   delay(2000);
 
   //micro-ROSのセットアップ
   allocator = rcl_get_default_allocator();
 
-  rclc_support_init(&support, 0, NULL, &allocator);
+  //rclc_support_init(&support, 0, NULL, &allocator);
 
-  rclc_node_init_default(&node, "ESP32_node", "", &support);
+  //rclc_node_init_default(&node, "ESP32_node", "", &support);
+
+  rosid_setup_humble();
 
   //サブスクライバとパブリッシャーの宣言
   /*

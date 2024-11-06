@@ -1,5 +1,5 @@
 #include <micro_ros_arduino.h>
-#include <define.h>
+#include "define.h"
 #include <stdio.h>
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
