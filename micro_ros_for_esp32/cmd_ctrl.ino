@@ -32,10 +32,6 @@ void PID_control(){
   // PID計算を実行
   R_PID.Compute();
   L_PID.Compute();
-
-  //  デバッグ用
-  abc = r_pwm;
-  def = l_pwm;  
   
   //  出力値の前処理
   if(r_pwm >= 0){

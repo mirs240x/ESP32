@@ -1,4 +1,6 @@
-/* ROS_DOMAIN_ID 設定用 */
+/*    ROS_DOMAIN_ID 設定用                  */
+/*    foxyの場合はrosid_setup_foxy()        */
+/*    humbleの場合はrosid_setup_humble()    */
 
 rcl_node_options_t node_ops; // Foxy
 rcl_init_options_t init_options; // Humble

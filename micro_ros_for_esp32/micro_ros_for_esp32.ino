@@ -5,44 +5,29 @@
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 #include <PID_v1_bc.h>
-#include <std_msgs/msg/int32.h>
 #include <std_msgs/msg/int32_multi_array.h>
-#include <nav_msgs/msg/odometry.h>
 #include <geometry_msgs/msg/transform_stamped.h>
 #include <rosidl_runtime_c/string_functions.h>
-#include <tf2_msgs/msg/tf_message.h>
 #include <geometry_msgs/msg/twist.h>
 #include <mirs_msgs/srv/parameter_update.h>
 #include <mirs_msgs/srv/simple_command.h>
-#include "quaternion.h"
 #include "define.h"
 #include <builtin_interfaces/msg/time.h>
 #include <tf2_msgs/msg/tf_message.h>
 #include <micro_ros_utilities/type_utilities.h>
 #include <micro_ros_utilities/string_utilities.h>
+#include <std_msgs/msg/float32_multi_array.h>
 
-//nav_msgs__msg__Odometry odom_msg;             //オドメトリ
-//geometry_msgs__msg__TransformStamped odom_tf; //tf変換
 std_msgs__msg__Int32MultiArray enc_msg;       //エンコーダー情報
+std_msgs__msg__Float32MultiArray vlt_msg;       //電圧情報
 geometry_msgs__msg__Twist vel_msg;            //速度指令値
 mirs_msgs__srv__ParameterUpdate_Response update_res;
 mirs_msgs__srv__ParameterUpdate_Request update_req;
-//mirs_msgs__srv__SimpleCommand_Response reboot_res;
-//mirs_msgs__srv__SimpleCommand_Request reboot_req;
-//mirs_msgs__srv__SimpleCommand_Response reset_res;
-//mirs_msgs__srv__SimpleCommand_Request reset_req;
-//tf2_msgs__msg__TFMessage tf_message;
 
-
-
-//rcl_publisher_t odom_pub;
-//rcl_publisher_t tf_pub;
 rcl_publisher_t enc_pub;
+rcl_publisher_t vlt_pub;
 rcl_subscription_t cmd_vel_sub;
 rcl_service_t update_srv;
-//rcl_service_t reboot_srv;
-//rcl_service_t reset_srv;
-//rcl_wait_set_t wait_set;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -52,10 +37,11 @@ rcl_timer_t timer;
 
 int32_t count_l = 0;
 int32_t count_r = 0;
-int32_t last_count_l,last_count_r;
+int32_t last_count_l = 0;
+int32_t last_count_r = 0;
 
-double left_distance;
-double right_distance;
+double left_distance = 0;
+double right_distance = 0;
 
 // PID制御用の変数
 double r_vel_cmd;
@@ -65,8 +51,8 @@ double l_vel;
 double r_pwm;
 double l_pwm;
 
-int32_t abc,def;
-
+double vlt_1 = 0;
+double vlt_2 = 0;
 
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {  
@@ -77,9 +63,12 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     //エンコーダーデータを格納
     enc_msg.data.data[0] = count_l;
     enc_msg.data.data[1] = count_r;
+    //電圧観測
+    vlt_watch();
+    vlt_msg.data.data[0] = vlt_1;
+    vlt_msg.data.data[0] = vlt_2;
     rcl_publish(&enc_pub, &enc_msg, NULL);
-    //rcl_publish(&odom_pub, &odom_msg, NULL);
-    //rcl_publish(&tf_pub, &tf_message, NULL);
+    rcl_publish(&vlt_pub, &vlt_msg, NULL);
   }
 }
 
@@ -93,34 +82,10 @@ void setup() {
   //micro-ROSのセットアップ
   allocator = rcl_get_default_allocator();
 
-  //rclc_support_init(&support, 0, NULL, &allocator);
-
-  //rclc_node_init_default(&node, "ESP32_node", "", &support);
-
+  //  nodeの作成とros_domein_idの作成
   rosid_setup_humble();
 
-  //サブスクライバとパブリッシャーの宣言
-  /*
-  rclc_publisher_init_default(
-    &odom_pub,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
-    "/odom"
-  );
-  
-  rclc_publisher_init_default(
-    &tf_broadcaster,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TransformStamped),
-    "/tf"
-  );
-  rclc_publisher_init_default(
-    &tf_pub,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-    "/tf"
-  );*/
-
+  //サブスクライバ、パブリッシャー、サービスの宣言
   rclc_publisher_init_default(
     &enc_pub,
     &node,
@@ -135,28 +100,13 @@ void setup() {
     "/cmd_vel"
   );
 
-  // サービスの宣言
   rclc_service_init_default(
     &update_srv,
     &node,
     ROSIDL_GET_SRV_TYPE_SUPPORT(mirs_msgs, srv, ParameterUpdate),
     "/esp_update"
   );
-  /*
-  rclc_service_init_default(
-    &reboot_srv,
-    &node,
-    ROSIDL_GET_SRV_TYPE_SUPPORT(mirs_msgs, srv, SimpleCommand),
-    "/esp_reboot"
-  );
 
-  rclc_service_init_default(
-    &reset_srv,
-    &node,
-    ROSIDL_GET_SRV_TYPE_SUPPORT(mirs_msgs, srv, SimpleCommand),
-    "/esp_reset"
-  );
-  */
   const uint32_t timer_timeout = 100;
 
   rclc_timer_init_default(
@@ -169,11 +119,8 @@ void setup() {
   rclc_executor_init(&executor, &support.context, 3, &allocator);
   rclc_executor_add_subscription(&executor, &cmd_vel_sub, &vel_msg, &cmd_vel_Callback, ON_NEW_DATA);
   rclc_executor_add_service(&executor, &update_srv, &update_req, &update_res, update_service_callback);
-  //rclc_executor_add_service(&executor, &reboot_srv, &reboot_req, &reboot_res, reboot_service_callback);
-  //rclc_executor_add_service(&executor, &reset_srv, &reset_req, &reset_res, reset_service_callback);
   rclc_executor_add_timer(&executor, &timer);
 
-  //odometry_set();
   cmd_vel_set();
 
   delay(2000);
