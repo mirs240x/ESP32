@@ -1,7 +1,3 @@
-// PIDオブジェクトを作成
-PID R_PID(&r_vel, &r_pwm, &r_vel_cmd, RKP, RKI, RKD, DIRECT);
-PID L_PID(&l_vel, &l_pwm, &l_vel_cmd, LKP, LKI, LKD, DIRECT);
-
 // PWM設定
 const int32_t r_Channel = 0;        // PWMチャンネル
 const int32_t l_Channel = 1;
@@ -11,6 +7,12 @@ const int32_t pwmResolution = 8;   // PWM分解能 (8ビット = 0-255)
 float linear_x;   //  直進速度
 float angular_z;  //  回転速度
 
+float r_err_sum = 0;
+float l_err_sum = 0;
+
+float dist_r_err = 0;
+float dist_l_err = 0;
+
 // cmd_velメッセージのコールバック関数
 void cmd_vel_Callback(const void * msgin) {
   const geometry_msgs__msg__Twist * vel_msg = (const geometry_msgs__msg__Twist *)msgin;
@@ -18,21 +20,38 @@ void cmd_vel_Callback(const void * msgin) {
   // linear.x と angular.z のデータを取得
   linear_x = vel_msg->linear.x;
   angular_z = vel_msg->angular.z;
-}
 
-void PID_control(){
   //  目標速度計算
   r_vel_cmd = linear_x + WHEEL_BASE / 2 * angular_z;
   l_vel_cmd = linear_x - WHEEL_BASE / 2 * angular_z;
+}
 
-  // 現在の速度(dt=0.1s)
-  l_vel = left_distance / 0.1;
-  r_vel = right_distance / 0.1;
- 
+void PID_control(){
+
+  float r_err = r_vel_cmd - r_vel;
+  float l_err = l_vel_cmd - l_vel;
+
+  r_err_sum += r_err;
+  l_err_sum += l_err;
+
   // PID計算を実行
-  R_PID.Compute();
-  L_PID.Compute();
-  
+  r_pwm = RKP * r_err + RKI * r_err_sum + RKD *  (r_err - dist_r_err);
+  l_pwm = LKP * l_err + LKI * l_err_sum + LKD *  (l_err - dist_l_err);
+
+  dist_r_err = r_err;
+  dist_l_err = l_err;
+
+  if(r_pwm > 255){
+    r_pwm = 255;
+  }else if(r_pwm < -255){
+    l_pwm = -255;
+  }
+  if(l_pwm > 255){
+    l_pwm = 255;
+  }else if(l_pwm < -255){
+    l_pwm = -255;
+  }
+
   //  出力値の前処理
   if(r_pwm >= 0){
     digitalWrite(PIN_DIR_R, LOW);
@@ -68,10 +87,4 @@ void cmd_vel_set() {
   ledcSetup(l_Channel, pwmFrequency, pwmResolution);
   ledcAttachPin(PIN_PWM_R, r_Channel);
   ledcAttachPin(PIN_PWM_L, l_Channel);
- 
-  // PID制御を開始
-  R_PID.SetMode(AUTOMATIC);
-  L_PID.SetMode(AUTOMATIC);
-  R_PID.SetOutputLimits(-255.0, 255.0);
-  L_PID.SetOutputLimits(-255.0, 255.0);
 }
