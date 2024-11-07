@@ -18,8 +18,8 @@ void calculate_cuvel(){
   l_vel = left_distance / 0.1;
   r_vel = right_distance / 0.1;
 
-  cuvel_msg.data.data[0] = RKP;
-  cuvel_msg.data.data[1] = RKI;
+  cuvel_msg.data.data[0] = l_vel;
+  cuvel_msg.data.data[1] = r_vel;
 }
 
 void cuvel_setup(){
