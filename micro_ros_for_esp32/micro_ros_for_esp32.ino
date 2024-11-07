@@ -13,7 +13,7 @@
 #include <mirs_msgs/srv/parameter_update.h>
 #include <mirs_msgs/srv/simple_command.h>
 #include <mirs_msgs/msg/basic_param.h>
-#include "define.h"
+#include "define.h"//aaa
 #include <builtin_interfaces/msg/time.h>
 #include <tf2_msgs/msg/tf_message.h>
 #include <micro_ros_utilities/type_utilities.h>
