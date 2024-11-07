@@ -25,9 +25,7 @@ void PID_control(){
   r_vel_cmd = linear_x + WHEEL_BASE / 2 * angular_z;
   l_vel_cmd = linear_x - WHEEL_BASE / 2 * angular_z;
 
-  // 現在の速度(dt=0.1s)
-  l_vel = left_distance / 0.1;
-  r_vel = right_distance / 0.1;
+
  
   // PID計算を実行
   R_PID.Compute();

@@ -4,7 +4,7 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
-
+//#include <TimeLib.h>
 #include <PID_v1_bc.h>
 #include <std_msgs/msg/int32_multi_array.h>
 #include <geometry_msgs/msg/transform_stamped.h>
@@ -22,6 +22,7 @@
 
 std_msgs__msg__Int32MultiArray enc_msg;       //エンコーダー情報
 std_msgs__msg__Float64MultiArray vlt_msg;     //電圧情報
+std_msgs__msg__Float64MultiArray cuvel_msg;     //速度情報
 geometry_msgs__msg__Twist vel_msg;            //速度指令値
 mirs_msgs__msg__BasicParam param_msg;         //パラメーターメッセージ
 mirs_msgs__srv__ParameterUpdate_Response update_res;
@@ -29,6 +30,7 @@ mirs_msgs__srv__ParameterUpdate_Request update_req;
 
 rcl_publisher_t enc_pub;
 rcl_publisher_t vlt_pub;
+rcl_publisher_t cuvel_pub;
 rcl_subscription_t cmd_vel_sub;
 rcl_subscription_t param_sub;
 rcl_service_t update_srv;
@@ -43,9 +45,10 @@ int32_t count_l = 0;
 int32_t count_r = 0;
 int32_t last_count_l = 0;
 int32_t last_count_r = 0;
-
+// 速度計算用
 double left_distance = 0;
 double right_distance = 0;
+
 
 // PID制御用の変数
 double r_vel_cmd;
@@ -62,6 +65,9 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {  
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
+    //速度計算
+    calculate_cuvel();
+
     //PID計算
     PID_control();
     //エンコーダーデータを格納
@@ -69,10 +75,11 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     enc_msg.data.data[1] = count_r;
     //電圧観測
     //vlt_watch();
-    vlt_msg.data.data[0] = vlt_1;
-    vlt_msg.data.data[1] = vlt_2;
+    vlt_msg.data.data[0] = l_vel;
+    vlt_msg.data.data[1] = r_vel;
     rcl_publish(&enc_pub, &enc_msg, NULL);
     rcl_publish(&vlt_pub, &vlt_msg, NULL);
+    rcl_publish(&cuvel_pub, &cuvel_msg, NULL);
   }
 }
 
@@ -88,11 +95,11 @@ void setup() {
   //micro-ROSのセットアップ
   allocator = rcl_get_default_allocator();
 
-  rclc_support_init(&support, 0, NULL, &allocator);
-  rclc_node_init_default(&node, "ESP32_node", "", &support);
+  //rclc_support_init(&support, 0, NULL, &allocator);
+  //rclc_node_init_default(&node, "ESP32_node", "", &support);
 
   //  nodeの作成とros_domein_idの作成
-  //rosid_setup_humble();
+  rosid_setup_humble();
   //rosid_setup_foxy();
 
   //サブスクライバ、パブリッシャー、サービスの宣言
@@ -108,6 +115,13 @@ void setup() {
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64MultiArray),
     "/vlt"
+  );
+
+  rclc_publisher_init_default(
+    &cuvel_pub,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64MultiArray),
+    "/vel"
   );
 
   rclc_subscription_init_default(
@@ -148,6 +162,7 @@ void setup() {
 
   cmd_vel_set();
   vlt_setup();
+  cuvel_setup();
 
   delay(2000);
 
