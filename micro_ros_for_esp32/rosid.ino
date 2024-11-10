@@ -4,7 +4,7 @@
 
 rcl_node_options_t node_ops; // Foxy
 rcl_init_options_t init_options; // Humble
-#define ROS_DOMAIN_ID 90
+#define ROS_DOMAIN_ID 4
 
 void rosid_setup_foxy(){
   node_ops = rcl_node_get_default_options();

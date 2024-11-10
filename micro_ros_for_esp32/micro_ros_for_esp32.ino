@@ -145,7 +145,7 @@ void setup() {
     "/esp_update"
   );
 
-  const uint32_t timer_timeout = 100;
+  const uint32_t timer_timeout = 50;
 
   rclc_timer_init_default(
     &timer,

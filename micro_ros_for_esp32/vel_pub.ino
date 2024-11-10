@@ -15,8 +15,8 @@ void calculate_cuvel(){
   right_distance = delta_right_rad * WHEEL_RADIUS;
 
   // 現在の速度を計算
-  l_vel = left_distance / 0.1;
-  r_vel = right_distance / 0.1;
+  l_vel = left_distance / 0.05;
+  r_vel = right_distance / 0.05;
 
   cuvel_msg.data.data[0] = l_vel;
   cuvel_msg.data.data[1] = r_vel;
